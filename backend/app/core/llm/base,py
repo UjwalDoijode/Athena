@@ -1,0 +1,29 @@
+from abc import ABC, abstractmethod
+from typing import AsyncGenerator
+
+class BaseLLMClient(ABC):
+
+    @abstractmethod
+    async def generate(self, prompt: str, system: str = "") -> str:
+        """Single-shot generation. Returns complete resposne"""
+        pass
+    
+    @abstractmethod
+    async def stream(self, prompt: str, system: str = "") -> AsyncGenerator[str, None]:
+        """Streaming generation. Yields token as they are generated"""
+        pass
+    
+    @abstractmethod
+    async def embed(self, text: str) -> list[float]:
+        """Embed a single text. Returns vector."""
+        pass
+    
+    @abstractmethod
+    async def embed_batch(self, texts: list[str]) -> list[list[str]]:
+        """Embed a batch of texts. Returns list of vectors."""
+        pass
+    
+    @abstractmethod
+    async def health_check(self) -> bool:
+        """Check if the LLM service is healthy. Returns True if healthy, False otherwise."""
+        pass
