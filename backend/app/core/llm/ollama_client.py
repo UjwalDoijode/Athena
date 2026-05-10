@@ -3,8 +3,8 @@ import json
 import asyncio
 import time
 from typing import AsyncGenerator
-from backend.app.core.llm.base import BaseLLMClient
-from backend.app.config import get_settings
+from app.core.llm.base import BaseLLMClient
+from app.config import get_settings
 
 settings = get_settings()
 
@@ -40,23 +40,31 @@ class OllamaClient(BaseLLMClient):
 
     def __init__(self):
         self.base_url = settings.OLLAMA_BASE_URL
-        self.llm_model = settings.LLM_MODEL
-        self.code_model = settings.CODE_MODEL
-        self.embed_model = settings.EMBED_MODEL
+        self.primary_model = settings.primary_model if hasattr(settings, 'primary_model') else settings.LLM_MODEL
+        self.code_model = settings.code_model if hasattr(settings, 'code_model') else settings.CODE_MODEL
+        self.embed_model = settings.embed_model if hasattr(settings, 'embed_model') else settings.EMBED_MODEL
         self._client = httpx.AsyncClient(timeout=120.0)
 
-    async def generate(self, prompt: str, system_prompt: str = "", use_code_model: bool = False) -> str:
-        model = self.code_model if use_code_model else self.llm_model
+    def _route_model(self, prompt: str) -> str:
+        """Route prompts to appropriate model based on content."""
+        if "def " in prompt or "class " in prompt or "import " in prompt:
+            return self.code_model
+        return self.primary_model
+
+    async def generate(self, prompt:str, system:str = "", system_prompt: str = "", use_code_model: bool = False) -> str:
+        # Support both system and system_prompt parameters for compatibility
+        sys_msg = system_prompt or system
+        model = self.code_model if use_code_model else self._route_model(prompt)
 
         payload = {
             "model": model,
             "prompt": prompt,
-            "system": system_prompt,
+            "system": sys_msg,
             "stream": False,
             "options": {
                 "temperature": 0.1,
-                "num_ctx": settings.LLM_CONTEXT_WINDOW,
-                "num_predict": settings.MAX_TOKENS_RESPONSE,
+                "num_ctx": getattr(settings, 'LLM_CONTEXT_WINDOW', 4096),
+                "num_predict": getattr(settings, 'MAX_TOKENS_RESPONSE', 512),
             }
         }
 
@@ -76,18 +84,18 @@ class OllamaClient(BaseLLMClient):
         
         return result["response"]
     
-    async def stream(self, prompt: str, system_prompt: str = "", use_code_model: bool = False) -> AsyncGenerator[str, None]:
-        model = self.code_model if use_code_model else self.llm_model
+    async def stream(self, prompt: str, system: str = "", use_code_model: bool = False) -> AsyncGenerator[str, None]:
+        model = self.code_model if use_code_model else self._route_model(prompt)
 
         payload = {
             "model": model,
             "prompt": prompt,
-            "system": system_prompt,
+            "system": system,
             "stream": True,
             "options": {
                 "temperature": 0.1,
-                "num_ctx": settings.LLM_CONTEXT_WINDOW,
-                "num_predict": settings.MAX_TOKENS_RESPONSE,
+                "num_ctx": getattr(settings, 'LLM_CONTEXT_WINDOW', 4096),
+                "num_predict": getattr(settings, 'MAX_TOKENS_RESPONSE', 512),
             }
         }
 
@@ -105,17 +113,17 @@ class OllamaClient(BaseLLMClient):
                         yield token
                     if chunk.get("done", False):
                         break
-                    
+    
     async def embed(self, text: str) -> list[float]:
         response = await self._client.post(
-            f"{self.base_url}/api/embed",
+            f"{self.base_url}/api/embeddings",
             json={
                 "model": self.embed_model,
-                "input": text
+                "prompt": text
             }
         )
         response.raise_for_status()
-        return response.json()["embeddings"][0]
+        return response.json()["embedding"]
     
     async def embed_batch(self, texts: list[str]) -> list[list[float]]:
         tasks = [self.embed(text) for text in texts]
@@ -129,10 +137,10 @@ class OllamaClient(BaseLLMClient):
             )
             response.raise_for_status()
             data = response.json()
-            models = [m["name"] for m in data.get("models", [])]
+            model_names = [m["name"] for m in data.get("models", [])]
             return {
                 "status": "ok",
-                "models": models
+                "models": model_names
             }
         except Exception as e:
             return {
@@ -140,15 +148,6 @@ class OllamaClient(BaseLLMClient):
                 "models": [],
                 "error": str(e)
             }
-    
-    def _route_model(self, prompt: str) -> str:
-        """Route to code model if prompt contains code patterns."""
-        if "def " in prompt or "class " in prompt or "import " in prompt:
-            return self.code_model
-        return self.llm_model
         
     async def aclose(self):
-        await self._client.aclose()
-    
-    async def close(self):
         await self._client.aclose()
