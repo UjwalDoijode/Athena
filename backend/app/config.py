@@ -24,19 +24,23 @@ class Settings(BaseSettings):
     CHUNK_SIZE: int = 512
     CHUNK_OVERLAP: int = 64
 
-    POSTGRES_HOST: str = "localhost"
-    POSTGRES_PORT: int = 5432
-    POSTGRES_DB: str = "athena"
-    POSTGRES_USER: str = "athena"
-    POSTGRES_PASSWORD: str = "athena_dev"
+    # POSTGRES_HOST: str = "localhost"
+    # POSTGRES_PORT: int = 5432
+    # POSTGRES_DB: str = "athena"
+    # POSTGRES_USER: str = "athena"
+    # POSTGRES_PASSWORD: str = "athena_dev"
 
-    @property
-    def DATABASE_URL(self) -> str:
-        return (
-            f"postgresql+asyncpg://{self.POSTGRES_USER}:"
-            f"{self.POSTGRES_PASSWORD}@{self.POSTGRES_HOST}:"
-            f"{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
-        )
+    # @property
+    # def DATABASE_URL(self) -> str:
+    #     return (
+    #         f"postgresql+asyncpg://{self.POSTGRES_USER}:"
+    #         f"{self.POSTGRES_PASSWORD}@{self.POSTGRES_HOST}:"
+    #         f"{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
+    #     )
+
+    QDRANT_HOST: str = "localhost"
+    QDRANT_PORT: int = 6333
+    QDRANT_COLLECTION: str = "athena_documents"
     
     REDIS_URL: str = "redis://localhost:6379/0"
 
