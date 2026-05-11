@@ -1,4 +1,4 @@
-# Athena AI OS
+# Athena AI OS with Ollama models
 
 A local-first reasoning system built on Ollama with support for multiple LLMs, embeddings, and advanced retrieval capabilities.
 
