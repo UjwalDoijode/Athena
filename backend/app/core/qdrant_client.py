@@ -1,5 +1,5 @@
 from qdrant_client import AsyncQdrantClient
-from qdrant_client.models import (Distance, VectorParams, HnswConfigDiff,) 
+from qdrant_client.models import Distance, VectorParams, HnswConfigDiff 
 from app.config import get_settings
 import logging
 
