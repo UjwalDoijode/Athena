@@ -2,7 +2,7 @@
 
 A local-first reasoning system built on Ollama with support for multiple LLMs, embeddings, and advanced retrieval capabilities.
 
-## Features
+## Features 
 
 - **Local LLM Integration**: Seamless integration with Ollama for running models locally
 - **Multi-Model Support**: 
